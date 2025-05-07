@@ -8,6 +8,7 @@ import com.example.student.Student.external.Course;
 import com.example.student.Student.external.Department;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -15,14 +16,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class StudentServiceImpl implements StudentService {
 
-    @Autowired
     RestTemplate restTemplate;
-
     StudentRepository studentRepository;
 
-    StudentServiceImpl(StudentRepository studentRepository){
+    public StudentServiceImpl(RestTemplate restTemplate, StudentRepository studentRepository) {
+        this.restTemplate = restTemplate;
         this.studentRepository = studentRepository;
     }
 
@@ -41,7 +42,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     private Department getDepartmentById(Long id){
-        String url = "http://localhost:8080/api/dept/{id}";
+        String url = "http://localhost:8080/api/departments/{id}";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -63,42 +64,40 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public List<Student_Course_Dept_DTO> getAllStudents() {
         List<Student> allStudents = studentRepository.findAll();
-
         List<Student_Course_Dept_DTO> studentCourseDeptDtoList = new ArrayList<>();
 
-        // iterate all students -> via student.deptId, student.courseId we can get the Course,Department object.
-        // now check if studentCourseDeptDtoList contains a student with roll same as current student -> then just add course to courseList. Else -> create a DTO object and add all student, Department, empty list to companies
-
-        Iterator<Student> studentIterator = allStudents.iterator();
-        while(studentIterator.hasNext()){
-            Student student = studentIterator.next();
-
+        for (Student student : allStudents) {
             Long courseId = student.getCourseId();
             Long deptId = student.getDeptId();
             Long studentRoll = student.getRoll();
 
-            // get Course, Department via RestTemplate
             Course course = getCourseById(courseId);
             Department department = getDepartmentById(deptId);
 
-            Iterator<Student_Course_Dept_DTO> dtoIterator = studentCourseDeptDtoList.iterator();
-
-            while(dtoIterator.hasNext()){
-                Student_Course_Dept_DTO dto = dtoIterator.next();
-
-                if(dto.getStudent().getRoll().equals(studentRoll)){
-                    dto.getCourse().add(course);
-                }else{
-                    Student_Course_Dept_DTO studentCourseDeptDto = new Student_Course_Dept_DTO();
-
-                    studentCourseDeptDto.setStudent(student);
-                    studentCourseDeptDto.setCourse(new ArrayList<>(List.of(course)));
-                    studentCourseDeptDto.setDepartment(department);
-
-                    studentCourseDeptDtoList.add(studentCourseDeptDto);
+            // Find existing DTO for this student
+            Student_Course_Dept_DTO existingDto = null;
+            for (Student_Course_Dept_DTO dto : studentCourseDeptDtoList) {
+                if (dto.getStudent().getRoll().equals(studentRoll)) {
+                    existingDto = dto;
+                    break;
                 }
             }
 
+            if (existingDto != null) {
+                // Add course to existing DTO
+                if (existingDto.getCourse() != null) {
+                    existingDto.getCourse().add(course);
+                }
+            } else {
+                // Create new DTO
+                Student_Course_Dept_DTO newDto = new Student_Course_Dept_DTO();
+                newDto.setStudent(student);
+                newDto.setCourse(new ArrayList<>());
+                newDto.getCourse().add(course);
+                newDto.setDepartment(department);
+
+                studentCourseDeptDtoList.add(newDto);
+            }
         }
 
         return studentCourseDeptDtoList;
@@ -142,9 +141,14 @@ public class StudentServiceImpl implements StudentService {
     public boolean createStudent(Student student, Long deptId, Long courseId) {
         try {
             // check if dept exists > under it check if course exist.
+            if(getDepartmentById(deptId) != null && getCourseById(courseId) != null){
 
-            studentRepository.save(student);
-            return true;
+                studentRepository.save(student);
+                return true;
+
+            }
+
+            return false;
         } catch (Exception e) {
             return false;
         }

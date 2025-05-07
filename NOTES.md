@@ -1,4 +1,4 @@
-// Student:
+// Student - 8082
 
 // so to enroll a student in multiple courses, we'll have to do it multiple times with same name, same roll, same department.
 
@@ -10,7 +10,7 @@
     deptId
 }
 
-// Course
+// Course - 8081
 
 {
     id,
@@ -18,7 +18,7 @@
     deptId
 }
 
-// Department
+// Department - 8080
 
 {
     id,

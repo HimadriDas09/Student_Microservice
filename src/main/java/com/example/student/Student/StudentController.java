@@ -17,7 +17,7 @@ public class StudentController {
         this.studentService = studentService;
     }
 
-    @GetMapping
+    @GetMapping("/{id}")
     public ResponseEntity<Student> getStudentById(@PathVariable Long id){
         Student studentById = studentService.getStudentById(id);
 
@@ -35,15 +35,15 @@ public class StudentController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createStudent(@RequestBody Student student, @RequestParam Long deptId, @RequestParam Long courseId){
-        boolean result = studentService.createStudent(student, deptId, courseId);
+    public ResponseEntity<String> createStudent(@RequestBody Student student){
+        boolean result = studentService.createStudent(student, student.getDeptId(), student.getCourseId());
         if(result){
             return new ResponseEntity<>("Student successfully created", HttpStatus.CREATED);
         }
         return new ResponseEntity<>("student not created", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @GetMapping
+    @GetMapping("/{roll}")
     public ResponseEntity<Student_Course_Dept_DTO> getStudentByRollNo(@PathVariable Long roll){
         Student_Course_Dept_DTO studentCourseDeptDto = studentService.getStudentByRollNo(roll);
 
@@ -54,7 +54,7 @@ public class StudentController {
         return new ResponseEntity<>(studentCourseDeptDto, HttpStatus.OK);
     }
 
-    @GetMapping
+    @GetMapping("/getName")
     public ResponseEntity<List<Student_Course_Dept_DTO>> getStudentByName(@RequestParam String name){
         List<Student_Course_Dept_DTO> studentByStudentName = studentService.getStudentByStudentName(name);
 
